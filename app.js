@@ -18,6 +18,17 @@
   let allReady = true;
   let resultsStarted = false;
 
+  function allQuestionsCompleted() {
+    return questions.every((q) => (selections[q.id] || []).length >= 3);
+  }
+
+  function refreshReadyButton() {
+    if (!readyBtn) return;
+    const complete = allQuestionsCompleted();
+    readyBtn.disabled = !complete;
+    readyBtn.title = complete ? "" : "Vul alle vragen in voordat je op ready klikt";
+  }
+
   // DOM refs
   const grid = document.getElementById("optionsGrid");
   const questionText = document.getElementById("questionText");
@@ -63,14 +74,16 @@
       const picked = qid ? selections[qid] || [] : [];
       nextBtn.disabled = picked.length < 3 || !allReady;
       nextBtn.textContent = allReady ? "Resultaat tonen" : "Wachten tot iedereen ready is";
-      if (syncActive && allReady && picked.length >= 3 && !resultsStarted) {
-        resultsStarted = true;
-        if (window.Sync?.updateProgress) {
-          window.Sync.updateProgress(questions.length, questions.length);
-        }
-        computeAndShowResults();
-      }
     }
+    // Start gezamenlijk als iedereen ready is en alle vragen zijn ingevuld
+    if (syncActive && allReady && allQuestionsCompleted() && !resultsStarted) {
+      resultsStarted = true;
+      if (window.Sync?.updateProgress) {
+        window.Sync.updateProgress(questions.length, questions.length);
+      }
+      computeAndShowResults();
+    }
+    refreshReadyButton();
   };
 
   function renderQuestion() {
@@ -133,6 +146,7 @@
     resultsEl.style.display = "none";
     voteScreen.style.display = "block";
     updateParticipants();
+    refreshReadyButton();
     if (syncActive && window.Sync?.updateProgress) {
       window.Sync.updateProgress(currentIndex, questions.length);
     }
@@ -154,6 +168,7 @@
 
     selections[qid] = picked;
     renderQuestion();
+    refreshReadyButton();
   }
 
   function computeQuestionScores(question, signed = false) {
@@ -478,6 +493,7 @@
     const qid = questions[currentIndex].id;
     selections[qid] = [];
     renderQuestion();
+    refreshReadyButton();
   });
 
   function updateParticipants() {
@@ -513,6 +529,7 @@
     voteScreen.style.display = "block";
     renderQuestion();
     updateParticipants();
+    refreshReadyButton();
     if (window.Sync) {
       syncActive = true;
       window.Sync.connect(userName);
@@ -547,9 +564,11 @@
     startScreen.style.display = "grid";
     voteScreen.style.display = "none";
     setIndicatorVisible(false);
+    refreshReadyButton();
   });
 
   readyBtn.addEventListener("click", () => {
+    if (readyBtn.disabled) return;
     readyBtn.classList.toggle("active");
     readyBtn.textContent = readyBtn.classList.contains("active") ? "Gereed" : "Ik ben er klaar voor";
     if (window.Sync && userName) {
@@ -562,5 +581,6 @@
     voteScreen.style.display = "block";
     renderQuestion();
     updateParticipants();
+    refreshReadyButton();
   };
 })();
