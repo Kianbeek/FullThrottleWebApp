@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrackTricks by Kian</title>
+  <link rel="stylesheet" href="stemmen.css" />
+  <link rel="stylesheet" href="resultaat.css" />
+  <link rel="stylesheet" href="stats.css" />
+  <script src="questions.js"></script>
+  <script src="sync.js"></script>
+</head>
+<body>
+  <header>
+    <div class="header-left brand">
+      <div class="logo-mark" aria-hidden="true">
+        <svg width="150" height="40" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad-blue" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0" stop-color="#7ef1ff"/>
+              <stop offset="1" stop-color="#00b0ff"/>
+            </linearGradient>
+            <linearGradient id="grad-gold" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0" stop-color="#ffc857"/>
+              <stop offset="1" stop-color="#ff7c29"/>
+            </linearGradient>
+          </defs>
+          <text x="0" y="16" fill="#e8f1ff" font-family="Segoe UI, sans-serif" font-weight="800" font-size="14">TRACKTRICKS</text>
+          <g transform="translate(0 18)">
+            <rect x="0" y="5" width="22" height="12" rx="3" fill="url(#grad-blue)"/>
+            <rect x="26" y="5" width="22" height="12" rx="3" fill="url(#grad-blue)"/>
+            <rect x="52" y="5" width="22" height="12" rx="3" fill="url(#grad-blue)"/>
+            <path d="M90 5 L105 11 L90 17 Z" fill="url(#grad-gold)"/>
+            <path d="M108 5 L123 11 L108 17 Z" fill="url(#grad-gold)"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="pill" id="questionIndicator">Vraag 1 / 1</span>
+    </div>
+  </header>
+
+  <div id="startScreen" class="start-screen">
+    <div class="start-card">
+      <h2>Welkom bij TrackTricks</h2>
+      <p>Vul je naam in om te starten.</p>
+      <input id="nameInput" type="text" placeholder="Jouw naam" />
+      <button id="startBtn">Start stemmen</button>
+    </div>
+  </div>
+
+  <div id="voteScreen" style="display:none;">
+    <div class="layout">
+      <aside class="decor-panel">
+        <img src="assets/decoration/large.png" alt="Decoratie" />
+      </aside>
+      <div class="main-column">
+        <div class="question-box">
+          <div id="questionText">Vraag komt hier...</div>
+        </div>
+
+        <section class="grid" id="optionsGrid"></section>
+
+        <div class="actions">
+          <button class="secondary" id="prevBtn">Vorige vraag</button>
+          <button class="secondary" id="resetBtn">Reset selectie</button>
+          <button id="nextBtn" disabled>Volgende / Resultaat</button>
+        </div>
+      </div>
+    </div>
+    <div id="participantsFloat" class="participants-float" style="display:none;">
+      <div class="pf-title">Deelnemers</div>
+      <div id="participantsList"></div>
+      <button id="renameBtn" class="pf-rename">Wijzig naam</button>
+      <button id="readyBtn" class="pf-ready">Ik ben er klaar voor</button>
+      <div id="sessionStatus" class="pf-status"></div>
+    </div>
+  </div>
+
+  <section class="results" id="results" style="display: none;">
+    <div class="reveal">
+      <div class="reveal-question" id="revealQuestion"></div>
+      <div class="reveal-cards" id="revealCards"></div>
+      <div class="reveal-actions">
+        <button id="revealNext">Volgende vraagresultaat</button>
+        <button id="skipBtn" class="skip-btn" style="display:none;">Skip naar statistieken</button>
+      </div>
+    </div>
+    <div id="stats" class="stats" style="display: none;">
+      <h3>Statistieken</h3>
+      <div class="overall-panels">
+        <div class="overall-panel">
+          <div class="panel-title">Meest populair</div>
+          <div id="statsPopular" class="stat-grid"></div>
+        </div>
+        <div class="overall-panel">
+          <div class="panel-title">Jouw favorieten</div>
+          <div id="statsFavorites" class="stat-grid"></div>
+        </div>
+        <div class="overall-panel">
+          <div class="panel-title">Meest controversieel</div>
+          <div id="statsControversial" class="stat-grid"></div>
+        </div>
+        <div class="overall-panel">
+          <div class="panel-title">Populairst per kleur</div>
+          <div id="statsByGroup" class="stat-grid"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
