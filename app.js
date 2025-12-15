@@ -18,6 +18,15 @@
   let allReady = true;
   let resultsStarted = false;
 
+  function setReadyState(flag) {
+    if (!readyBtn) return;
+    readyBtn.classList.toggle("active", !!flag);
+    readyBtn.textContent = flag ? "Gereed" : "Ik ben er klaar voor";
+    if (syncActive && window.Sync && userName) {
+      window.Sync.updateReady(!!flag);
+    }
+  }
+
   function allQuestionsCompleted() {
     return questions.every((q) => (selections[q.id] || []).length >= 3);
   }
@@ -28,7 +37,7 @@
     readyBtn.disabled = !complete;
     readyBtn.title = complete ? "" : "Vul alle vragen in voordat je op ready klikt";
     if (!complete) {
-      readyBtn.classList.remove("active");
+      setReadyState(false);
     }
   }
 
@@ -435,7 +444,7 @@
 
     buildCards(popularSorted, "statsPopular", "Nog geen populaire maps.");
     buildCards(favSorted, "statsFavorites", "Nog geen favorieten.");
-    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversiële maps.", true, true);
+    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversi‰le maps.", true, true);
 
     const byGroup = [1, 2, 3, 4, 5]
       .map((grp) => {
@@ -496,6 +505,7 @@
     selections[qid] = [];
     renderQuestion();
     refreshReadyButton();
+    setReadyState(false);
   });
 
   function updateParticipants() {
@@ -554,7 +564,6 @@
     });
   }
 
-  // Alleen veld vooraf invullen; niet automatisch doorstarten.
   if (userName) {
     nameInput.value = userName;
   }
@@ -571,11 +580,8 @@
 
   readyBtn.addEventListener("click", () => {
     if (readyBtn.disabled) return;
-    readyBtn.classList.toggle("active");
-    readyBtn.textContent = readyBtn.classList.contains("active") ? "Gereed" : "Ik ben er klaar voor";
-    if (window.Sync && userName) {
-      window.Sync.updateReady(readyBtn.classList.contains("active"));
-    }
+    const nextState = !readyBtn.classList.contains("active");
+    setReadyState(nextState);
   });
 
   window.startQuestions = () => {
