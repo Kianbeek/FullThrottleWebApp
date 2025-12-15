@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   const data = window.TrackTricksData || { maps: [], questions: [] };
   const maps = data.maps || [];
   const questions = (data.questions || []).map((q) => ({ ...q, options: maps }));
@@ -409,7 +409,7 @@
 
     buildCards(popularSorted, "statsPopular", "Nog geen populaire maps.");
     buildCards(favSorted, "statsFavorites", "Nog geen favorieten.");
-    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversiële maps.", true, true);
+    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversi�le maps.", true, true);
 
     const byGroup = [1, 2, 3, 4, 5]
       .map((grp) => {
@@ -510,22 +510,24 @@
     }
   }
 
-  startBtn.addEventListener("click", startVoting);
-  nameInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") startVoting();
-  });
+    if (startBtn) {
+    startBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      startVoting();
+    });
+  }
+  if (nameInput) {
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        startVoting();
+      }
+    });
+  }
 
+  // Geen auto-doorstart meer; alleen veld vooraf invullen.
   if (userName) {
     nameInput.value = userName;
-    startScreen.style.display = "none";
-    voteScreen.style.display = "block";
-    renderQuestion();
-    updateParticipants();
-    if (window.Sync) {
-      syncActive = true;
-      window.Sync.connect(userName);
-      window.Sync.updateReady(false);
-    }
   }
 
   renameBtn.addEventListener("click", () => {
@@ -552,3 +554,4 @@
     updateParticipants();
   };
 })();
+
