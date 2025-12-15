@@ -1,9 +1,9 @@
-// Lightweight client-side sync using WebSocket
+﻿// Lightweight client-side sync using WebSocket
 // Requires server.js running locally (ws://localhost:3001)
 (function(){
   // Aanpasbaar: zet hier je server-IP/poort.
   // Voor LAN gebruik je je interne IP; voor internet gebruik je je publieke IP met port forwarding.
-  const WS_URL = 'ws://192.168.178.126:3001';
+  const WS_URL = 'wss://demiurgeous-phoebe-trustlessly.ngrok-free.dev';
   let socket = null;
   let sessionId = 'default';
   let userName = null;
@@ -69,7 +69,7 @@
       name.textContent = p.name;
       const meta = document.createElement('div');
       meta.className = 'participant-progress';
-      const ready = p.ready ? '✓' : '…';
+      const ready = p.ready ? 'OK' : '...';
       const prog = p.progress ? `${p.progress.qIndex + 1}/${p.progress.total}` : '-';
       meta.textContent = `${ready} ${prog}`;
       row.append(name, meta);
@@ -84,3 +84,7 @@
     setStatus,
   };
 })();
+
+
+
+
