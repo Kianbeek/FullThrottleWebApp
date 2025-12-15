@@ -1,11 +1,11 @@
-(() => {
+﻿(() => {
   const data = window.TrackTricksData || { maps: [], questions: [] };
   const maps = data.maps || [];
   const questions = (data.questions || []).map((q) => ({ ...q, options: maps }));
   const weights = [3, 2, 1];
 
   let currentIndex = 0;
-  const selections = {}; // { questionId: [mapId, mapId, mapId] }
+  const selections = {};
   let userName = localStorage.getItem("tracktricks_user") || "";
   let revealIndex = 0;
   let revealRank = 0;
@@ -15,7 +15,8 @@
   let statsShown = false;
   let syncActive = false;
   let syncParticipants = [];
-  let allAnswered = true;
+  let allReady = true;
+  let resultsStarted = false;
 
   // DOM refs
   const grid = document.getElementById("optionsGrid");
@@ -46,22 +47,29 @@
 
   setIndicatorVisible(false);
 
-  function updateAllAnswered() {
+  function updateAllReady() {
     if (syncActive && syncParticipants.length > 0) {
-      allAnswered = syncParticipants.every((p) => p.progress && p.progress.qIndex >= questions.length - 1);
+      allReady = syncParticipants.every((p) => p.ready);
     } else {
-      allAnswered = true;
+      allReady = true;
     }
   }
 
   window.onSyncParticipantsUpdated = (list) => {
     syncParticipants = list;
-    updateAllAnswered();
+    updateAllReady();
     if (currentIndex === questions.length - 1) {
       const qid = questions[currentIndex]?.id;
       const picked = qid ? selections[qid] || [] : [];
-      nextBtn.disabled = picked.length < 3 || !allAnswered;
-      nextBtn.textContent = allAnswered ? "Resultaat tonen" : "Wachten op anderen";
+      nextBtn.disabled = picked.length < 3 || !allReady;
+      nextBtn.textContent = allReady ? "Resultaat tonen" : "Wachten tot iedereen ready is";
+      if (syncActive && allReady && picked.length >= 3 && !resultsStarted) {
+        resultsStarted = true;
+        if (window.Sync?.updateProgress) {
+          window.Sync.updateProgress(questions.length, questions.length);
+        }
+        computeAndShowResults();
+      }
     }
   };
 
@@ -115,9 +123,9 @@
     prevBtn.disabled = currentIndex === 0;
     nextBtn.disabled = picked.length < 3;
     if (currentIndex === questions.length - 1 && syncActive) {
-      updateAllAnswered();
-      nextBtn.disabled = nextBtn.disabled || !allAnswered;
-      nextBtn.textContent = allAnswered ? "Resultaat tonen" : "Wachten op anderen";
+      updateAllReady();
+      nextBtn.disabled = nextBtn.disabled || !allReady;
+      nextBtn.textContent = allReady ? "Resultaat tonen" : "Wachten tot iedereen ready is";
     } else {
       nextBtn.textContent = currentIndex === questions.length - 1 ? "Resultaat tonen" : "Volgende vraag";
     }
@@ -292,14 +300,15 @@
       currentIndex++;
       renderQuestion();
     } else {
-      updateAllAnswered();
-      if (syncActive && !allAnswered) {
-        window.Sync?.setStatus?.("Wachten tot iedereen klaar is");
+      updateAllReady();
+      if (syncActive && !allReady) {
+        window.Sync?.setStatus?.("Wachten tot iedereen ready is");
         return;
       }
       if (syncActive && window.Sync?.updateProgress) {
         window.Sync.updateProgress(questions.length, questions.length);
       }
+      resultsStarted = true;
       computeAndShowResults();
     }
   });
@@ -325,7 +334,7 @@
     }
   });
 
-  // skipBtn click intentionally left without behavior; button stays hidden
+  // skipBtn blijft verborgen
 
   function renderStats() {
     const popularTotals = {};
@@ -409,7 +418,7 @@
 
     buildCards(popularSorted, "statsPopular", "Nog geen populaire maps.");
     buildCards(favSorted, "statsFavorites", "Nog geen favorieten.");
-    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversi�le maps.", true, true);
+    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversiële maps.", true, true);
 
     const byGroup = [1, 2, 3, 4, 5]
       .map((grp) => {
@@ -499,6 +508,7 @@
     if (!name) return;
     userName = name;
     localStorage.setItem("tracktricks_user", name);
+    resultsStarted = false;
     startScreen.style.display = "none";
     voteScreen.style.display = "block";
     renderQuestion();
@@ -510,7 +520,7 @@
     }
   }
 
-    if (startBtn) {
+  if (startBtn) {
     startBtn.addEventListener("click", (e) => {
       e.preventDefault();
       startVoting();
@@ -525,7 +535,7 @@
     });
   }
 
-  // Geen auto-doorstart meer; alleen veld vooraf invullen.
+  // Alleen veld vooraf invullen; niet automatisch doorstarten.
   if (userName) {
     nameInput.value = userName;
   }
@@ -554,4 +564,3 @@
     updateParticipants();
   };
 })();
-
