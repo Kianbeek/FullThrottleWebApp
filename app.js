@@ -1,14 +1,14 @@
-(() => {
+﻿(() => {
   const data = window.TrackTricksData || { maps: [], questions: [] };
   const maps = data.maps || [];
   const questions = (data.questions || []).map((q) => ({ ...q, options: maps }));
-  const weights = [3, 2, 1]; // rank 1, 2, 3
+  const weights = [3, 2, 1];
 
   let currentIndex = 0;
   const selections = {}; // { questionId: [mapId, mapId, mapId] }
   let userName = localStorage.getItem("tracktricks_user") || "";
-  let revealIndex = 0; // index van vraag in reveal flow
-  let revealRank = 0; // welke plek binnen de vraag tonen we nu
+  let revealIndex = 0;
+  let revealRank = 0;
   let revealTopThree = [];
   let revealTimers = [];
   let revealAnimating = false;
@@ -41,9 +41,7 @@
   const statsEl = document.getElementById("stats");
 
   function setIndicatorVisible(flag) {
-    if (indicator) {
-      indicator.style.display = flag ? "inline-flex" : "none";
-    }
+    if (indicator) indicator.style.display = flag ? "inline-flex" : "none";
   }
 
   setIndicatorVisible(false);
@@ -77,9 +75,7 @@
     grid.innerHTML = "";
     const picked = selections[q.id] || [];
     const allowedSet = q.allowedIds ? new Set(q.allowedIds) : null;
-    if (allowedSet) {
-      selections[q.id] = picked.filter((id) => allowedSet.has(id));
-    }
+    if (allowedSet) selections[q.id] = picked.filter((id) => allowedSet.has(id));
 
     q.options.forEach((opt, idx) => {
       const card = document.createElement("div");
@@ -125,6 +121,7 @@
     } else {
       nextBtn.textContent = currentIndex === questions.length - 1 ? "Resultaat tonen" : "Volgende vraag";
     }
+
     resultsEl.style.display = "none";
     voteScreen.style.display = "block";
     updateParticipants();
@@ -143,11 +140,8 @@
     if (existing !== -1) {
       picked.splice(existing, 1);
     } else {
-      if (picked.length < 3) {
-        picked.push(id); // eerste klik = rank 1, tweede = rank 2, derde = rank 3
-      } else {
-        picked[2] = id; // vervang rank 3 als er al drie keuzes zijn
-      }
+      if (picked.length < 3) picked.push(id);
+      else picked[2] = id;
     }
 
     selections[qid] = picked;
@@ -167,9 +161,7 @@
 
   function buildTopThree(q) {
     const scores = computeQuestionScores(q, true);
-    const sorted = Object.entries(scores).sort((a, b) => {
-      return q.polarity === "negative" ? a[1] - b[1] : b[1] - a[1];
-    });
+    const sorted = Object.entries(scores).sort((a, b) => (q.polarity === "negative" ? a[1] - b[1] : b[1] - a[1]));
     return sorted.slice(0, 3).map(([mapId, pts]) => {
       const opt = maps.find((m) => m.id === mapId);
       return { ...opt, pts };
@@ -292,25 +284,6 @@
     voteScreen.style.display = "none";
     participantsFloat.style.display = "none";
     setIndicatorVisible(false);
-
-  function updateAllAnswered() {
-    if (syncActive && syncParticipants.length > 0) {
-      allAnswered = syncParticipants.every((p) => p.progress && p.progress.qIndex >= questions.length - 1);
-    } else {
-      allAnswered = true;
-    }
-  }
-
-  window.onSyncParticipantsUpdated = (list) => {
-    syncParticipants = list;
-    updateAllAnswered();
-    if (currentIndex === questions.length - 1) {
-      const qid = questions[currentIndex]?.id;
-      const picked = qid ? selections[qid] || [] : [];
-      nextBtn.disabled = picked.length < 3 || !allAnswered;
-      nextBtn.textContent = allAnswered ? "Resultaat tonen" : "Wachten op anderen";
-    }
-  };
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -352,15 +325,8 @@
     }
   });
 
-  skipBtn.addEventListener("click", () => {
-    renderStats();
-    revealContainer.style.display = "none";
-    statsShown = true;
-    revealNext.textContent = "Terug naar stemmen";
-    skipBtn.style.display = "none";
-  });
+  // skipBtn click intentionally left without behavior; button stays hidden
 
-  // Statistieken (alleen positieve populariteit en persoonlijke favorieten)
   function renderStats() {
     const popularTotals = {};
     const favTotals = {};
@@ -394,13 +360,7 @@
 
     const controversial = Object.keys(posTotals)
       .filter((id) => (posTotals[id] || 0) > 0 && (negTotals[id] || 0) > 0)
-      .map((id) => {
-        return {
-          id,
-          pos: posTotals[id] || 0,
-          neg: negTotals[id] || 0,
-          score: (posTotals[id] || 0) + (negTotals[id] || 0),
-        };)
+      .map((id) => ({ id, pos: posTotals[id] || 0, neg: negTotals[id] || 0, score: (posTotals[id] || 0) + (negTotals[id] || 0) }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 1);
 
@@ -449,13 +409,7 @@
 
     buildCards(popularSorted, "statsPopular", "Nog geen populaire maps.");
     buildCards(favSorted, "statsFavorites", "Nog geen favorieten.");
-    buildCards(
-      controversial.map((item) => [item.id, item.score, item]),
-      "statsControversial",
-      "Nog geen controversiële maps.",
-      true,
-      true
-    );
+    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversiële maps.", true, true);
 
     const byGroup = [1, 2, 3, 4, 5]
       .map((grp) => {
@@ -522,7 +476,6 @@
       participantsFloat.style.display = "none";
       return;
     }
-    // Als sync actief is laten we sync.js het lijstje renderen
     if (syncActive) {
       participantsFloat.style.display = "block";
       return;
@@ -582,25 +535,6 @@
     startScreen.style.display = "grid";
     voteScreen.style.display = "none";
     setIndicatorVisible(false);
-
-  function updateAllAnswered() {
-    if (syncActive && syncParticipants.length > 0) {
-      allAnswered = syncParticipants.every((p) => p.progress && p.progress.qIndex >= questions.length - 1);
-    } else {
-      allAnswered = true;
-    }
-  }
-
-  window.onSyncParticipantsUpdated = (list) => {
-    syncParticipants = list;
-    updateAllAnswered();
-    if (currentIndex === questions.length - 1) {
-      const qid = questions[currentIndex]?.id;
-      const picked = qid ? selections[qid] || [] : [];
-      nextBtn.disabled = picked.length < 3 || !allAnswered;
-      nextBtn.textContent = allAnswered ? "Resultaat tonen" : "Wachten op anderen";
-    }
-  };
   });
 
   readyBtn.addEventListener("click", () => {
@@ -611,20 +545,10 @@
     }
   });
 
-  // expose startQuestions for server-triggered start
   window.startQuestions = () => {
     startScreen.style.display = "none";
     voteScreen.style.display = "block";
     renderQuestion();
     updateParticipants();
-  };)();
-
-
-
-
-
-
-
-
-
-
+  };
+})();
