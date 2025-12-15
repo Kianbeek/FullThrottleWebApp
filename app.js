@@ -27,6 +27,9 @@
     const complete = allQuestionsCompleted();
     readyBtn.disabled = !complete;
     readyBtn.title = complete ? "" : "Vul alle vragen in voordat je op ready klikt";
+    if (!complete) {
+      readyBtn.classList.remove("active");
+    }
   }
 
   // DOM refs
@@ -75,7 +78,6 @@
       nextBtn.disabled = picked.length < 3 || !allReady;
       nextBtn.textContent = allReady ? "Resultaat tonen" : "Wachten tot iedereen ready is";
     }
-    // Start gezamenlijk als iedereen ready is en alle vragen zijn ingevuld
     if (syncActive && allReady && allQuestionsCompleted() && !resultsStarted) {
       resultsStarted = true;
       if (window.Sync?.updateProgress) {
