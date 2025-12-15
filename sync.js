@@ -1,13 +1,13 @@
 ﻿// Lightweight client-side sync using WebSocket
-// Requires server.js running locally (ws://localhost:3001)
+// Requires server.js running (default ws://localhost:3001 or your public/tunnel endpoint)
 (function(){
-  // Aanpasbaar: zet hier je server-IP/poort.
-  // Voor LAN gebruik je je interne IP; voor internet gebruik je je publieke IP met port forwarding.
+  // Publieke endpoint (ngrok) zodat GitHub Pages kan verbinden via wss.
   const WS_URL = 'wss://demiurgeous-phoebe-trustlessly.ngrok-free.dev';
   let socket = null;
   let sessionId = 'default';
   let userName = null;
   let isReady = false;
+  let participantsState = [];
 
   function connect(name) {
     userName = name;
@@ -50,7 +50,11 @@
 
   function handleMessage(msg) {
     if (msg.type === 'state') {
-      renderParticipants(msg.participants || []);
+      participantsState = msg.participants || [];
+      renderParticipants(participantsState);
+      if (window.onSyncParticipantsUpdated) {
+        window.onSyncParticipantsUpdated(participantsState);
+      }
     }
     if (msg.type === 'start') {
       window.startQuestions && window.startQuestions();
@@ -84,7 +88,3 @@
     setStatus,
   };
 })();
-
-
-
-

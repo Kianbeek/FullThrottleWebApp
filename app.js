@@ -14,6 +14,8 @@
   let revealAnimating = false;
   let statsShown = false;
   let syncActive = false;
+  let syncParticipants = [];
+  let allAnswered = true;
 
   // DOM refs
   const grid = document.getElementById("optionsGrid");
@@ -45,6 +47,25 @@
   }
 
   setIndicatorVisible(false);
+
+  function updateAllAnswered() {
+    if (syncActive && syncParticipants.length > 0) {
+      allAnswered = syncParticipants.every((p) => p.progress && p.progress.qIndex >= questions.length - 1);
+    } else {
+      allAnswered = true;
+    }
+  }
+
+  window.onSyncParticipantsUpdated = (list) => {
+    syncParticipants = list;
+    updateAllAnswered();
+    if (currentIndex === questions.length - 1) {
+      const qid = questions[currentIndex]?.id;
+      const picked = qid ? selections[qid] || [] : [];
+      nextBtn.disabled = picked.length < 3 || !allAnswered;
+      nextBtn.textContent = allAnswered ? "Resultaat tonen" : "Wachten op anderen";
+    }
+  };
 
   function renderQuestion() {
     const q = questions[currentIndex];
@@ -97,7 +118,13 @@
 
     prevBtn.disabled = currentIndex === 0;
     nextBtn.disabled = picked.length < 3;
-    nextBtn.textContent = currentIndex === questions.length - 1 ? "Resultaat tonen" : "Volgende vraag";
+    if (currentIndex === questions.length - 1 && syncActive) {
+      updateAllAnswered();
+      nextBtn.disabled = nextBtn.disabled || !allAnswered;
+      nextBtn.textContent = allAnswered ? "Resultaat tonen" : "Wachten op anderen";
+    } else {
+      nextBtn.textContent = currentIndex === questions.length - 1 ? "Resultaat tonen" : "Volgende vraag";
+    }
     resultsEl.style.display = "none";
     voteScreen.style.display = "block";
     updateParticipants();
@@ -219,7 +246,7 @@
       runRevealSequence();
       updateRevealButton(idx);
       revealNext.style.display = "inline-flex";
-      skipBtn.style.display = "inline-flex";
+      skipBtn.style.display = "none";
     }, 3000);
   }
 
@@ -265,6 +292,25 @@
     voteScreen.style.display = "none";
     participantsFloat.style.display = "none";
     setIndicatorVisible(false);
+
+  function updateAllAnswered() {
+    if (syncActive && syncParticipants.length > 0) {
+      allAnswered = syncParticipants.every((p) => p.progress && p.progress.qIndex >= questions.length - 1);
+    } else {
+      allAnswered = true;
+    }
+  }
+
+  window.onSyncParticipantsUpdated = (list) => {
+    syncParticipants = list;
+    updateAllAnswered();
+    if (currentIndex === questions.length - 1) {
+      const qid = questions[currentIndex]?.id;
+      const picked = qid ? selections[qid] || [] : [];
+      nextBtn.disabled = picked.length < 3 || !allAnswered;
+      nextBtn.textContent = allAnswered ? "Resultaat tonen" : "Wachten op anderen";
+    }
+  };
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -273,6 +319,14 @@
       currentIndex++;
       renderQuestion();
     } else {
+      updateAllAnswered();
+      if (syncActive && !allAnswered) {
+        window.Sync?.setStatus?.("Wachten tot iedereen klaar is");
+        return;
+      }
+      if (syncActive && window.Sync?.updateProgress) {
+        window.Sync.updateProgress(questions.length, questions.length);
+      }
       computeAndShowResults();
     }
   });
@@ -346,8 +400,7 @@
           pos: posTotals[id] || 0,
           neg: negTotals[id] || 0,
           score: (posTotals[id] || 0) + (negTotals[id] || 0),
-        };
-      })
+        };)
       .sort((a, b) => b.score - a.score)
       .slice(0, 1);
 
@@ -529,6 +582,25 @@
     startScreen.style.display = "grid";
     voteScreen.style.display = "none";
     setIndicatorVisible(false);
+
+  function updateAllAnswered() {
+    if (syncActive && syncParticipants.length > 0) {
+      allAnswered = syncParticipants.every((p) => p.progress && p.progress.qIndex >= questions.length - 1);
+    } else {
+      allAnswered = true;
+    }
+  }
+
+  window.onSyncParticipantsUpdated = (list) => {
+    syncParticipants = list;
+    updateAllAnswered();
+    if (currentIndex === questions.length - 1) {
+      const qid = questions[currentIndex]?.id;
+      const picked = qid ? selections[qid] || [] : [];
+      nextBtn.disabled = picked.length < 3 || !allAnswered;
+      nextBtn.textContent = allAnswered ? "Resultaat tonen" : "Wachten op anderen";
+    }
+  };
   });
 
   readyBtn.addEventListener("click", () => {
@@ -545,5 +617,14 @@
     voteScreen.style.display = "block";
     renderQuestion();
     updateParticipants();
-  };
-})();
+  };)();
+
+
+
+
+
+
+
+
+
+
