@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   const data = window.TrackTricksData || { maps: [], questions: [] };
   const maps = data.maps || [];
   const questions = (data.questions || []).map((q) => ({ ...q, options: maps }));
@@ -20,8 +20,12 @@
 
   function setReadyState(flag) {
     if (!readyBtn) return;
-    readyBtn.classList.toggle("active", !!flag);
-    readyBtn.textContent = flag ? "Gereed" : "Ik ben er klaar voor";
+    readyBtn.classList.toggle('active', !!flag);
+    let label = 'Ik ben er klaar voor';
+    if (flag) {
+      label = allReady ? 'Gereed - iedereen klaar' : 'Gereed - wachten op anderen';
+    }
+    readyBtn.textContent = label;
     if (syncActive && window.Sync && userName) {
       window.Sync.updateReady(!!flag);
     }
@@ -444,7 +448,7 @@
 
     buildCards(popularSorted, "statsPopular", "Nog geen populaire maps.");
     buildCards(favSorted, "statsFavorites", "Nog geen favorieten.");
-    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversi‰le maps.", true, true);
+    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversi�le maps.", true, true);
 
     const byGroup = [1, 2, 3, 4, 5]
       .map((grp) => {
@@ -592,3 +596,4 @@
     refreshReadyButton();
   };
 })();
+
