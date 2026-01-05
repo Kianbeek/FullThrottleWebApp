@@ -422,7 +422,7 @@
         Object.entries(aggregatedScores).forEach(([mapId, pts]) => {
           popularTotals[mapId] = (popularTotals[mapId] || 0) + pts;
         });
-        // Favorieten alleen lokaal tonen (niet geaggregeerd)
+        // Favorieten lokaal
         const localPicks = selections[q.id] || [];
         localPicks.forEach((mapId, idx) => {
           const pts = weights[idx] || 0;

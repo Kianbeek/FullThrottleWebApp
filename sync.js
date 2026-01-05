@@ -59,6 +59,9 @@
       if (window.onSyncParticipantsUpdated) {
         window.onSyncParticipantsUpdated(participantsState);
       }
+      if (msg.results && window.onSyncResults) {
+        window.onSyncResults();
+      }
     }
     if (msg.type === 'start') {
       window.startQuestions && window.startQuestions();

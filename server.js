@@ -7,7 +7,7 @@ const port = process.env.PORT || 3001;
 
 const wss = new WebSocketServer({ port });
 
-const sessions = new Map(); // sessionId -> { clients: Set<ws>, state: Map<name, {ready, progress, selections}> }
+const sessions = new Map(); // sessionId -> { clients: Set<ws>, state: Map<name, {ready, progress, selections}>, resultsTriggered: boolean }
 
 function sameSelections(a = {}, b = {}) {
   try {
@@ -33,10 +33,13 @@ function broadcast(sessionId) {
   const session = sessions.get(sessionId);
   if (!session) return;
   const participants = Array.from(session.state.entries()).map(([name, data]) => ({ name, ...data }));
-  const msg = JSON.stringify({ type: 'state', participants });
+  const msg = JSON.stringify({ type: 'state', participants, results: !!session.resultsTriggered });
   session.clients.forEach((ws) => {
     if (ws.readyState === ws.OPEN) ws.send(msg);
   });
+  if (session.resultsTriggered) {
+    console.log(`[state] session=${sessionId} resultsTriggered=true participants=${participants.length}`);
+  }
 }
 
 wss.on('connection', (ws) => {
@@ -54,12 +57,18 @@ wss.on('connection', (ws) => {
       sessionId = msg.sessionId || 'default';
       name = msg.name || 'onbekend';
       if (!sessions.has(sessionId)) {
-        sessions.set(sessionId, { clients: new Set(), state: new Map() });
+        sessions.set(sessionId, { clients: new Set(), state: new Map(), resultsTriggered: false });
       }
       const session = sessions.get(sessionId);
       session.clients.add(ws);
       session.state.set(name, { ready: false, progress: null, selections: {} });
       console.log(`[join] session=${sessionId} name=${name} clients=${session.clients.size}`);
+      // als resultaten al gestart zijn, duw meteen een results event en state
+      if (session.resultsTriggered) {
+        const resMsg = JSON.stringify({ type: 'results' });
+        ws.send(resMsg);
+        console.log(`[results-replay] session=${sessionId} to=${name}`);
+      }
       broadcast(sessionId);
     }
     if (msg.type === 'ready') {
@@ -98,7 +107,8 @@ wss.on('connection', (ws) => {
         session.state.set(name, { ...prev, progress: nextProgress, selections: nextSelections });
         if (logNeeded) {
           const currentQ = (nextProgress && nextProgress.qIndex) ?? '-';
-          console.log(`[progress] session=${sessionId} name=${name} qIndex=${currentQ} -> ${formatPoints({ [currentQ]: nextSelections[currentQ] || [] })}`);
+          const summary = formatPoints(nextSelections);
+          console.log(`[progress] session=${sessionId} name=${name} qIndex=${currentQ} -> ${summary}`);
         }
         broadcast(sessionId);
       }
@@ -106,11 +116,21 @@ wss.on('connection', (ws) => {
     if (msg.type === 'results') {
       const session = sessions.get(sessionId);
       if (session) {
-        console.log(`[results-trigger] session=${sessionId} by=${name}`);
+        console.log(`[results-trigger] session=${sessionId} by=${name} broadcast=${session.clients.size}`);
+        session.resultsTriggered = true;
         const resMsg = JSON.stringify({ type: 'results' });
         session.clients.forEach((client) => {
           if (client.readyState === client.OPEN) client.send(resMsg);
         });
+        broadcast(sessionId);
+        // extra replay na kleine delay om late listeners mee te nemen
+        setTimeout(() => broadcast(sessionId), 300);
+        setTimeout(() => {
+          session.clients.forEach((client) => {
+            if (client.readyState === client.OPEN) client.send(resMsg);
+          });
+          broadcast(sessionId);
+        }, 600);
       }
     }
   });
