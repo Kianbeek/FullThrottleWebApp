@@ -44,8 +44,12 @@
     send({ type: 'ready', sessionId, name: userName, ready: flag });
   }
 
-  function updateProgress(qIndex, total) {
-    send({ type: 'progress', sessionId, name: userName, progress: { qIndex, total } });
+  function updateProgress(qIndex, total, selections = {}) {
+    send({ type: 'progress', sessionId, name: userName, progress: { qIndex, total }, selections });
+  }
+
+  function triggerResults() {
+    send({ type: 'results', sessionId, name: userName });
   }
 
   function handleMessage(msg) {
@@ -58,6 +62,9 @@
     }
     if (msg.type === 'start') {
       window.startQuestions && window.startQuestions();
+    }
+    if (msg.type === 'results') {
+      window.onSyncResults && window.onSyncResults();
     }
   }
 
@@ -86,5 +93,6 @@
     updateReady,
     updateProgress,
     setStatus,
+    triggerResults,
   };
 })();

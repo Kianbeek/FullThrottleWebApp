@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const data = window.TrackTricksData || { maps: [], questions: [] };
   const maps = data.maps || [];
   const questions = (data.questions || []).map((q) => ({ ...q, options: maps }));
@@ -94,11 +94,19 @@
     if (syncActive && allReady && allQuestionsCompleted() && !resultsStarted) {
       resultsStarted = true;
       if (window.Sync?.updateProgress) {
-        window.Sync.updateProgress(questions.length, questions.length);
+        window.Sync.updateProgress(questions.length, questions.length, selections);
       }
       computeAndShowResults();
     }
     refreshReadyButton();
+  };
+
+  window.onSyncResults = () => {
+    if (resultsStarted) return;
+    updateAllReady();
+    if (!allQuestionsCompleted()) return;
+    resultsStarted = true;
+    computeAndShowResults();
   };
 
   function renderQuestion() {
@@ -163,7 +171,7 @@
     updateParticipants();
     refreshReadyButton();
     if (syncActive && window.Sync?.updateProgress) {
-      window.Sync.updateProgress(currentIndex, questions.length);
+      window.Sync.updateProgress(currentIndex, questions.length, selections);
     }
   }
 
@@ -186,9 +194,9 @@
     refreshReadyButton();
   }
 
-  function computeQuestionScores(question, signed = false) {
+  function computeQuestionScores(question, selectionSource = selections, signed = false) {
     const scores = {};
-    const picks = selections[question.id] || [];
+    const picks = selectionSource[question.id] || [];
     picks.forEach((mapId, idx) => {
       const base = weights[idx] || 0;
       const effective = signed && question.polarity === "negative" ? -base : base;
@@ -197,8 +205,39 @@
     return scores;
   }
 
+  function getParticipantSelectionsMap() {
+    const byUser = new Map();
+    if (syncActive && Array.isArray(syncParticipants)) {
+      syncParticipants.forEach((p) => {
+        if (p?.name && p.selections) {
+          byUser.set(p.name, p.selections);
+        }
+      });
+    }
+    if (userName) {
+      // always take the freshest local selections for the current user
+      byUser.set(userName, selections);
+    }
+    if (byUser.size === 0) {
+      byUser.set("local", selections);
+    }
+    return byUser;
+  }
+
+  function computeAggregatedQuestionScores(question, signed = false) {
+    const totals = {};
+    const byUser = getParticipantSelectionsMap();
+    byUser.forEach((selMap) => {
+      const scores = computeQuestionScores(question, selMap, signed);
+      Object.entries(scores).forEach(([mapId, pts]) => {
+        totals[mapId] = (totals[mapId] || 0) + pts;
+      });
+    });
+    return totals;
+  }
+
   function buildTopThree(q) {
-    const scores = computeQuestionScores(q, true);
+    const scores = computeAggregatedQuestionScores(q, true);
     const sorted = Object.entries(scores).sort((a, b) => (q.polarity === "negative" ? a[1] - b[1] : b[1] - a[1]));
     return sorted.slice(0, 3).map(([mapId, pts]) => {
       const opt = maps.find((m) => m.id === mapId);
@@ -336,7 +375,10 @@
         return;
       }
       if (syncActive && window.Sync?.updateProgress) {
-        window.Sync.updateProgress(questions.length, questions.length);
+        window.Sync.updateProgress(questions.length, questions.length, selections);
+      }
+      if (syncActive && window.Sync?.triggerResults) {
+        window.Sync.triggerResults();
       }
       resultsStarted = true;
       computeAndShowResults();
@@ -373,21 +415,24 @@
     const negTotals = {};
 
     questions.forEach((q) => {
-      const scores = computeQuestionScores(q, q.polarity === "negative");
+      const aggregatedScores = computeAggregatedQuestionScores(q, q.polarity === "negative");
       if (q.polarity === "positive") {
-        Object.entries(scores).forEach(([mapId, pts]) => {
+        Object.entries(aggregatedScores).forEach(([mapId, pts]) => {
           popularTotals[mapId] = (popularTotals[mapId] || 0) + pts;
         });
-        const picks = selections[q.id] || [];
-        picks.forEach((mapId, idx) => {
-          const pts = weights[idx] || 0;
-          favTotals[mapId] = (favTotals[mapId] || 0) + pts;
+        const byUser = getParticipantSelectionsMap();
+        byUser.forEach((selMap) => {
+          const picks = selMap[q.id] || [];
+          picks.forEach((mapId, idx) => {
+            const pts = weights[idx] || 0;
+            favTotals[mapId] = (favTotals[mapId] || 0) + pts;
+          });
         });
-        Object.entries(scores).forEach(([mapId, pts]) => {
+        Object.entries(aggregatedScores).forEach(([mapId, pts]) => {
           posTotals[mapId] = (posTotals[mapId] || 0) + pts;
         });
       } else {
-        Object.entries(scores).forEach(([mapId, pts]) => {
+        Object.entries(aggregatedScores).forEach(([mapId, pts]) => {
           const asPositive = Math.abs(pts);
           negTotals[mapId] = (negTotals[mapId] || 0) + asPositive;
         });
@@ -448,7 +493,7 @@
 
     buildCards(popularSorted, "statsPopular", "Nog geen populaire maps.");
     buildCards(favSorted, "statsFavorites", "Nog geen favorieten.");
-    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversi�le maps.", true, true);
+    buildCards(controversial.map((item) => [item.id, item.score, item]), "statsControversial", "Nog geen controversi‰le maps.", true, true);
 
     const byGroup = [1, 2, 3, 4, 5]
       .map((grp) => {
@@ -596,4 +641,5 @@
     refreshReadyButton();
   };
 })();
+
 

@@ -7,7 +7,7 @@ const port = process.env.PORT || 3001;
 
 const wss = new WebSocketServer({ port });
 
-const sessions = new Map(); // sessionId -> { clients: Set<ws>, state: Map<name, {ready, progress}> }
+const sessions = new Map(); // sessionId -> { clients: Set<ws>, state: Map<name, {ready, progress, selections}> }
 
 function broadcast(sessionId) {
   const session = sessions.get(sessionId);
@@ -38,7 +38,7 @@ wss.on('connection', (ws) => {
       }
       const session = sessions.get(sessionId);
       session.clients.add(ws);
-      session.state.set(name, { ready: false, progress: null });
+      session.state.set(name, { ready: false, progress: null, selections: {} });
       broadcast(sessionId);
     }
     if (msg.type === 'ready') {
@@ -58,8 +58,17 @@ wss.on('connection', (ws) => {
     if (msg.type === 'progress') {
       const session = sessions.get(sessionId);
       if (session && session.state.has(name)) {
-        session.state.set(name, { ...session.state.get(name), progress: msg.progress });
+        session.state.set(name, { ...session.state.get(name), progress: msg.progress, selections: msg.selections || {} });
         broadcast(sessionId);
+      }
+    }
+    if (msg.type === 'results') {
+      const session = sessions.get(sessionId);
+      if (session) {
+        const resMsg = JSON.stringify({ type: 'results' });
+        session.clients.forEach((client) => {
+          if (client.readyState === client.OPEN) client.send(resMsg);
+        });
       }
     }
   });
