@@ -9,6 +9,14 @@ const wss = new WebSocketServer({ port });
 
 const sessions = new Map(); // sessionId -> { clients: Set<ws>, state: Map<name, {ready, progress, selections}> }
 
+function sameSelections(a = {}, b = {}) {
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch (e) {
+    return false;
+  }
+}
+
 function broadcast(sessionId) {
   const session = sessions.get(sessionId);
   if (!session) return;
@@ -45,8 +53,12 @@ wss.on('connection', (ws) => {
     if (msg.type === 'ready') {
       const session = sessions.get(sessionId);
       if (session && session.state.has(name)) {
-        session.state.set(name, { ...session.state.get(name), ready: !!msg.ready });
-        console.log(`[ready] session=${sessionId} name=${name} ready=${!!msg.ready}`);
+        const prev = session.state.get(name);
+        const nextReady = !!msg.ready;
+        session.state.set(name, { ...prev, ready: nextReady });
+        if (prev.ready !== nextReady) {
+          console.log(`[ready] session=${sessionId} name=${name} ready=${nextReady}`);
+        }
         broadcast(sessionId);
         const allReady = Array.from(session.state.values()).every((p) => p.ready);
         if (allReady) {
@@ -61,10 +73,21 @@ wss.on('connection', (ws) => {
     if (msg.type === 'progress') {
       const session = sessions.get(sessionId);
       if (session && session.state.has(name)) {
-        session.state.set(name, { ...session.state.get(name), progress: msg.progress, selections: msg.selections || {} });
-        const picks = msg.selections || {};
-        const currentQ = (msg.progress && msg.progress.qIndex) ?? '-';
-        console.log(`[progress] session=${sessionId} name=${name} q=${currentQ} picks=${JSON.stringify(picks)}`);
+        const prev = session.state.get(name);
+        const nextProgress = msg.progress;
+        const nextSelections = msg.selections || {};
+        const sameProgress =
+          prev.progress &&
+          nextProgress &&
+          prev.progress.qIndex === nextProgress.qIndex &&
+          prev.progress.total === nextProgress.total;
+        const logNeeded = !sameProgress || !sameSelections(prev.selections, nextSelections);
+
+        session.state.set(name, { ...prev, progress: nextProgress, selections: nextSelections });
+        if (logNeeded) {
+          const currentQ = (nextProgress && nextProgress.qIndex) ?? '-';
+          console.log(`[progress] session=${sessionId} name=${name} q=${currentQ} picks=${JSON.stringify(nextSelections)}`);
+        }
         broadcast(sessionId);
       }
     }
