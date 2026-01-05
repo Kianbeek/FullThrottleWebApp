@@ -33,12 +33,17 @@ function broadcast(sessionId) {
   const session = sessions.get(sessionId);
   if (!session) return;
   const participants = Array.from(session.state.entries()).map(([name, data]) => ({ name, ...data }));
-  const msg = JSON.stringify({ type: 'state', participants, results: !!session.resultsTriggered });
+  const resultsFlag = !!session.resultsTriggered;
+  const msg = JSON.stringify({ type: 'state', participants, results: resultsFlag });
   session.clients.forEach((ws) => {
     if (ws.readyState === ws.OPEN) ws.send(msg);
   });
-  if (session.resultsTriggered) {
-    console.log(`[state] session=${sessionId} resultsTriggered=true participants=${participants.length}`);
+  if (resultsFlag) {
+    const resMsg = JSON.stringify({ type: 'results' });
+    session.clients.forEach((ws) => {
+      if (ws.readyState === ws.OPEN) ws.send(resMsg);
+    });
+    console.log(`[state] session=${sessionId} resultsTriggered=true participants=${participants.length} broadcastedResults=${session.clients.size}`);
   }
 }
 
