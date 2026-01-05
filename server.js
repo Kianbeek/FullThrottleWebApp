@@ -39,15 +39,18 @@ wss.on('connection', (ws) => {
       const session = sessions.get(sessionId);
       session.clients.add(ws);
       session.state.set(name, { ready: false, progress: null, selections: {} });
+      console.log(`[join] session=${sessionId} name=${name} clients=${session.clients.size}`);
       broadcast(sessionId);
     }
     if (msg.type === 'ready') {
       const session = sessions.get(sessionId);
       if (session && session.state.has(name)) {
         session.state.set(name, { ...session.state.get(name), ready: !!msg.ready });
+        console.log(`[ready] session=${sessionId} name=${name} ready=${!!msg.ready}`);
         broadcast(sessionId);
         const allReady = Array.from(session.state.values()).every((p) => p.ready);
         if (allReady) {
+          console.log(`[start] session=${sessionId} all ready`);
           const startMsg = JSON.stringify({ type: 'start' });
           session.clients.forEach((client) => {
             if (client.readyState === client.OPEN) client.send(startMsg);
@@ -59,12 +62,16 @@ wss.on('connection', (ws) => {
       const session = sessions.get(sessionId);
       if (session && session.state.has(name)) {
         session.state.set(name, { ...session.state.get(name), progress: msg.progress, selections: msg.selections || {} });
+        const picks = msg.selections || {};
+        const currentQ = (msg.progress && msg.progress.qIndex) ?? '-';
+        console.log(`[progress] session=${sessionId} name=${name} q=${currentQ} picks=${JSON.stringify(picks)}`);
         broadcast(sessionId);
       }
     }
     if (msg.type === 'results') {
       const session = sessions.get(sessionId);
       if (session) {
+        console.log(`[results-trigger] session=${sessionId} by=${name}`);
         const resMsg = JSON.stringify({ type: 'results' });
         session.clients.forEach((client) => {
           if (client.readyState === client.OPEN) client.send(resMsg);
