@@ -17,6 +17,18 @@ function sameSelections(a = {}, b = {}) {
   }
 }
 
+function formatPoints(selections = {}, weights = [3, 2, 1]) {
+  const entries = [];
+  Object.entries(selections).forEach(([qid, picks]) => {
+    if (!Array.isArray(picks)) return;
+    picks.forEach((mapId, idx) => {
+      const pts = weights[idx] || 0;
+      entries.push(`q${qid}: ${mapId} (+${pts})`);
+    });
+  });
+  return entries.length ? entries.join(', ') : 'geen keuzes';
+}
+
 function broadcast(sessionId) {
   const session = sessions.get(sessionId);
   if (!session) return;
@@ -86,7 +98,7 @@ wss.on('connection', (ws) => {
         session.state.set(name, { ...prev, progress: nextProgress, selections: nextSelections });
         if (logNeeded) {
           const currentQ = (nextProgress && nextProgress.qIndex) ?? '-';
-          console.log(`[progress] session=${sessionId} name=${name} q=${currentQ} picks=${JSON.stringify(nextSelections)}`);
+          console.log(`[progress] session=${sessionId} name=${name} qIndex=${currentQ} -> ${formatPoints({ [currentQ]: nextSelections[currentQ] || [] })}`);
         }
         broadcast(sessionId);
       }

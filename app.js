@@ -104,7 +104,6 @@
   window.onSyncResults = () => {
     if (resultsStarted) return;
     updateAllReady();
-    if (!allQuestionsCompleted()) return;
     resultsStarted = true;
     computeAndShowResults();
   };
@@ -192,6 +191,9 @@
     selections[qid] = picked;
     renderQuestion();
     refreshReadyButton();
+    if (syncActive && window.Sync?.updateProgress) {
+      window.Sync.updateProgress(currentIndex, questions.length, selections);
+    }
   }
 
   function computeQuestionScores(question, selectionSource = selections, signed = false) {
@@ -420,13 +422,11 @@
         Object.entries(aggregatedScores).forEach(([mapId, pts]) => {
           popularTotals[mapId] = (popularTotals[mapId] || 0) + pts;
         });
-        const byUser = getParticipantSelectionsMap();
-        byUser.forEach((selMap) => {
-          const picks = selMap[q.id] || [];
-          picks.forEach((mapId, idx) => {
-            const pts = weights[idx] || 0;
-            favTotals[mapId] = (favTotals[mapId] || 0) + pts;
-          });
+        // Favorieten alleen lokaal tonen (niet geaggregeerd)
+        const localPicks = selections[q.id] || [];
+        localPicks.forEach((mapId, idx) => {
+          const pts = weights[idx] || 0;
+          favTotals[mapId] = (favTotals[mapId] || 0) + pts;
         });
         Object.entries(aggregatedScores).forEach(([mapId, pts]) => {
           posTotals[mapId] = (posTotals[mapId] || 0) + pts;
