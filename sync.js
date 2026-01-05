@@ -1,8 +1,8 @@
 ﻿// Lightweight client-side sync using WebSocket
 // Requires server.js running (default ws://localhost:3001 or your public/tunnel endpoint)
 (function(){
-  // Publieke endpoint (ngrok) zodat GitHub Pages kan verbinden via wss.
-  const WS_URL = 'wss://demiurgeous-phoebe-trustlessly.ngrok-free.dev';
+  // Publieke endpoint (cloudflare) zodat GitHub Pages kan verbinden via wss.
+  const WS_URL = 'wss://fullthrottleclubapp.com';
   let socket = null;
   let sessionId = 'default';
   let userName = null;
