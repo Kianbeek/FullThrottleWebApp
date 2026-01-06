@@ -10,13 +10,24 @@
   let isReady = false;
   let participantsState = [];
   let resultsLogged = false;
+  let reconnectTimer = null;
+  let reconnectAttempts = 0;
 
   function connect(name) {
     console.log('[sync] connect called with name', name);
     userName = name;
+    // clear eventuele open socket
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.close(1000, 'reconnect');
+    }
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     socket = new WebSocket(WS_URL);
     socket.addEventListener('open', () => {
       console.log('[ws] open');
+      reconnectAttempts = 0;
       send({ type: 'join', sessionId, name: userName });
     });
     socket.addEventListener('error', (err) => {
@@ -33,12 +44,21 @@
     socket.addEventListener('close', (ev) => {
       console.warn('[ws] close', { code: ev.code, reason: ev.reason });
       setStatus('Verbinding verbroken');
+      // automatische reconnect met backoff
+      const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000);
+      reconnectAttempts += 1;
+      reconnectTimer = setTimeout(() => {
+        console.log('[ws] reconnect attempt', reconnectAttempts);
+        connect(userName);
+      }, delay);
     });
   }
 
   function send(payload) {
     if (socket && socket.readyState === 1) {
       socket.send(JSON.stringify(payload));
+    } else {
+      console.warn('[ws] send skipped, socket not open');
     }
   }
 

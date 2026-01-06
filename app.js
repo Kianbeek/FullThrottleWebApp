@@ -102,9 +102,12 @@
   };
 
   window.onSyncResults = () => {
-    if (resultsStarted) return;
-    updateAllReady();
-    resultsStarted = true;
+    console.log('[sync] onSyncResults received');
+    if (!resultsStarted) {
+      updateAllReady();
+      resultsStarted = true;
+    }
+    // force show results even if resultsStarted was already set
     computeAndShowResults();
   };
 
