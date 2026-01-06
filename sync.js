@@ -12,6 +12,7 @@
   let resultsLogged = false;
   let reconnectTimer = null;
   let reconnectAttempts = 0;
+  let pendingMessages = [];
 
   function connect(name) {
     console.log('[sync] connect called with name', name);
@@ -29,6 +30,7 @@
       console.log('[ws] open');
       reconnectAttempts = 0;
       send({ type: 'join', sessionId, name: userName });
+      flushPending();
     });
     socket.addEventListener('error', (err) => {
       console.warn('[ws] error', err);
@@ -58,7 +60,17 @@
     if (socket && socket.readyState === 1) {
       socket.send(JSON.stringify(payload));
     } else {
-      console.warn('[ws] send skipped, socket not open');
+      // bufferen tot de socket open is
+      pendingMessages.push(payload);
+      console.warn('[ws] send queued, socket not open. queue len=', pendingMessages.length);
+    }
+  }
+
+  function flushPending() {
+    if (!socket || socket.readyState !== 1) return;
+    while (pendingMessages.length) {
+      const p = pendingMessages.shift();
+      socket.send(JSON.stringify(p));
     }
   }
 
