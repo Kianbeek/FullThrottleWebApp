@@ -67,12 +67,6 @@ wss.on('connection', (ws) => {
         sessions.set(sessionId, { clients: new Set(), state: new Map(), resultsTriggered: false });
       }
       const session = sessions.get(sessionId);
-      // als we nog in een oude results-fase zaten, reset de state voor een nieuwe ronde
-      if (session.resultsTriggered) {
-        session.state.clear();
-        session.resultsTriggered = false;
-        console.log(`[reset-session] session=${sessionId} via new join ${name}`);
-      }
       session.clients.add(ws);
       const prev = session.state.get(name);
       session.state.set(
@@ -82,11 +76,12 @@ wss.on('connection', (ws) => {
           : { ready: false, progress: null, selections: {}, online: true }
       );
       console.log(`[join] session=${sessionId} name=${name} clients=${session.clients.size}`);
-      // als resultaten al gestart zijn, duw meteen een results event en state
+      // als resultaten al gestart zijn: stuur alleen naar deze client, niet resetten of rebroadcasten
       if (session.resultsTriggered) {
         const resMsg = JSON.stringify({ type: 'results' });
         ws.send(resMsg);
         console.log(`[results-replay] session=${sessionId} to=${name}`);
+        return;
       }
       broadcast(sessionId);
     }
