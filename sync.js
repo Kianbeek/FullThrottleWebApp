@@ -9,6 +9,7 @@
   let userName = null;
   let isReady = false;
   let participantsState = [];
+  let resultsLogged = false;
 
   function connect(name) {
     console.log('[sync] connect called with name', name);
@@ -67,6 +68,10 @@
         window.onSyncParticipantsUpdated(participantsState);
       }
       if (msg.results && window.onSyncResults) {
+        if (!resultsLogged) {
+          console.log('[ws] results flag via state');
+          resultsLogged = true;
+        }
         window.onSyncResults();
       }
     }
@@ -74,6 +79,10 @@
       window.startQuestions && window.startQuestions();
     }
     if (msg.type === 'results') {
+      if (!resultsLogged) {
+        console.log('[ws] results message');
+        resultsLogged = true;
+      }
       window.onSyncResults && window.onSyncResults();
     }
   }
