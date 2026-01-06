@@ -13,17 +13,23 @@
     userName = name;
     socket = new WebSocket(WS_URL);
     socket.addEventListener('open', () => {
+      console.log('[ws] open');
       send({ type: 'join', sessionId, name: userName });
+    });
+    socket.addEventListener('error', (err) => {
+      console.warn('[ws] error', err);
     });
     socket.addEventListener('message', (ev) => {
       try {
         const msg = JSON.parse(ev.data);
+        console.log('[ws] message', msg);
         handleMessage(msg);
       } catch (e) {
         console.warn('Bad message', e);
       }
     });
     socket.addEventListener('close', () => {
+      console.warn('[ws] close');
       setStatus('Verbinding verbroken');
     });
   }
@@ -97,5 +103,6 @@
     updateProgress,
     setStatus,
     triggerResults,
+    _debug: { getSocket: () => socket },
   };
 })();
