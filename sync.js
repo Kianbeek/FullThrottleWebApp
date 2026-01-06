@@ -24,7 +24,6 @@
     socket.addEventListener('message', (ev) => {
       try {
         const msg = JSON.parse(ev.data);
-        console.log('[ws] message', msg);
         handleMessage(msg);
       } catch (e) {
         console.warn('Bad message', e);
