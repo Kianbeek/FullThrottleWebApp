@@ -1,6 +1,7 @@
 ﻿// Lightweight client-side sync using WebSocket
 // Requires server.js running (default ws://localhost:3001 or your public/tunnel endpoint)
 (function(){
+  console.log('[sync] script loaded');
   // Publieke endpoint (Cloudflare) zodat GitHub Pages kan verbinden via wss.
   const WS_URL = 'wss://ws.fullthrottleclubapp.com';
   let socket = null;
@@ -10,6 +11,7 @@
   let participantsState = [];
 
   function connect(name) {
+    console.log('[sync] connect called with name', name);
     userName = name;
     socket = new WebSocket(WS_URL);
     socket.addEventListener('open', () => {
@@ -105,4 +107,5 @@
     triggerResults,
     _debug: { getSocket: () => socket },
   };
+  console.log('[sync] API ready on window.Sync');
 })();
