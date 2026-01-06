@@ -17,6 +17,7 @@
 
   function connect(name) {
     console.log('[sync] connect called with name', name);
+    resultsLogged = false;
     userName = name;
     // clear eventuele open socket
     if (socket && socket.readyState === WebSocket.OPEN) {

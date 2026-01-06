@@ -67,6 +67,12 @@ wss.on('connection', (ws) => {
         sessions.set(sessionId, { clients: new Set(), state: new Map(), resultsTriggered: false });
       }
       const session = sessions.get(sessionId);
+      // als we nog in een oude results-fase zaten, reset de state voor een nieuwe ronde
+      if (session.resultsTriggered) {
+        session.state.clear();
+        session.resultsTriggered = false;
+        console.log(`[reset-session] session=${sessionId} via new join ${name}`);
+      }
       session.clients.add(ws);
       const prev = session.state.get(name);
       session.state.set(
