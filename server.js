@@ -67,11 +67,6 @@ wss.on('connection', (ws) => {
         sessions.set(sessionId, { clients: new Set(), state: new Map(), resultsTriggered: false });
       }
       const session = sessions.get(sessionId);
-      // nieuwe join: reset eventuele oude results state
-      if (session.resultsTriggered) {
-        session.resultsTriggered = false;
-        console.log(`[reset-results] session=${sessionId} via join`);
-      }
       session.clients.add(ws);
       const prev = session.state.get(name);
       session.state.set(
@@ -97,10 +92,6 @@ wss.on('connection', (ws) => {
         session.state.set(name, { ...prev, ready: nextReady, online: true });
         if (prev.ready !== nextReady) {
           console.log(`[ready] session=${sessionId} name=${name} ready=${nextReady}`);
-        }
-        if (!nextReady && session.resultsTriggered) {
-          session.resultsTriggered = false;
-          console.log(`[reset-results] session=${sessionId} due to unready ${name}`);
         }
         broadcast(sessionId);
         const allReady = Array.from(session.state.values()).every((p) => p.ready);
@@ -168,8 +159,13 @@ wss.on('connection', (ws) => {
     if (session) {
       session.clients.delete(ws);
       if (name && session.state.has(name)) {
-        const prev = session.state.get(name);
-        session.state.set(name, { ...prev, online: false, ready: false });
+        session.state.delete(name);
+      }
+      // als er geen clients meer zijn, hele sessie weggooien
+      if (session.clients.size === 0) {
+        sessions.delete(sessionId);
+        console.log(`[session-destroyed] session=${sessionId}`);
+        return;
       }
       broadcast(sessionId);
     }
