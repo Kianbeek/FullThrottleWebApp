@@ -29,8 +29,8 @@
         console.warn('Bad message', e);
       }
     });
-    socket.addEventListener('close', () => {
-      console.warn('[ws] close');
+    socket.addEventListener('close', (ev) => {
+      console.warn('[ws] close', { code: ev.code, reason: ev.reason });
       setStatus('Verbinding verbroken');
     });
   }
