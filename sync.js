@@ -62,12 +62,15 @@
     } else {
       // bufferen tot de socket open is
       pendingMessages.push(payload);
-      console.warn('[ws] send queued, socket not open. queue len=', pendingMessages.length);
+      console.warn('[ws] send queued, socket not open. queue len=', pendingMessages.length, 'payload=', payload.type);
     }
   }
 
   function flushPending() {
     if (!socket || socket.readyState !== 1) return;
+    if (pendingMessages.length) {
+      console.log('[ws] flushing queued messages', pendingMessages.map((p) => p.type));
+    }
     while (pendingMessages.length) {
       const p = pendingMessages.shift();
       socket.send(JSON.stringify(p));
