@@ -118,6 +118,11 @@ wss.on('connection', (ws) => {
         broadcast(sessionId);
       }
     }
+    if (msg.type === 'ping') {
+      // lightweight keep-alive; reply with pong to keep connections warm
+      const pong = JSON.stringify({ type: 'pong', ts: msg.ts || Date.now() });
+      if (ws.readyState === ws.OPEN) ws.send(pong);
+    }
     if (msg.type === 'results') {
       const session = sessions.get(sessionId);
       if (session) {

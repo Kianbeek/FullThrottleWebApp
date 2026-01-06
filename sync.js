@@ -13,6 +13,7 @@
   let reconnectTimer = null;
   let reconnectAttempts = 0;
   let pendingMessages = [];
+  let heartbeatTimer = null;
 
   function connect(name) {
     console.log('[sync] connect called with name', name);
@@ -31,6 +32,7 @@
       reconnectAttempts = 0;
       send({ type: 'join', sessionId, name: userName });
       flushPending();
+      startHeartbeat();
     });
     socket.addEventListener('error', (err) => {
       console.warn('[ws] error', err);
@@ -46,6 +48,7 @@
     socket.addEventListener('close', (ev) => {
       console.warn('[ws] close', { code: ev.code, reason: ev.reason });
       setStatus('Verbinding verbroken');
+      stopHeartbeat();
       // automatische reconnect met backoff
       const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000);
       reconnectAttempts += 1;
@@ -74,6 +77,22 @@
     while (pendingMessages.length) {
       const p = pendingMessages.shift();
       socket.send(JSON.stringify(p));
+    }
+  }
+
+  function startHeartbeat() {
+    stopHeartbeat();
+    heartbeatTimer = setInterval(() => {
+      if (socket && socket.readyState === 1) {
+        socket.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
+      }
+    }, 25000); // 25s keepalive
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
     }
   }
 
