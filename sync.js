@@ -46,7 +46,7 @@
       }
     });
     socket.addEventListener('close', (ev) => {
-      console.warn('[ws] close', { code: ev.code, reason: ev.reason });
+      console.warn('[ws] close', { code: ev.code, reason: ev.reason, wasClean: ev.wasClean });
       setStatus('Verbinding verbroken');
       stopHeartbeat();
       // automatische reconnect met backoff
@@ -86,7 +86,7 @@
       if (socket && socket.readyState === 1) {
         socket.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
       }
-    }, 25000); // 25s keepalive
+    }, 10000); // 10s keepalive
   }
 
   function stopHeartbeat() {

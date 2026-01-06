@@ -7,7 +7,7 @@ const port = process.env.PORT || 3001;
 
 const wss = new WebSocketServer({ port });
 
-const sessions = new Map(); // sessionId -> { clients: Set<ws>, state: Map<name, {ready, progress, selections}>, resultsTriggered: boolean }
+const sessions = new Map(); // sessionId -> { clients: Set<ws>, state: Map<name, {ready, progress, selections, online}>, resultsTriggered: boolean }
 
 function sameSelections(a = {}, b = {}) {
   try {
@@ -50,6 +50,8 @@ function broadcast(sessionId) {
 wss.on('connection', (ws) => {
   let sessionId = 'default';
   let name = null;
+  const peer = `${ws._socket.remoteAddress || 'unknown'}:${ws._socket.remotePort || ''}`;
+  console.log(`[conn-open] peer=${peer}`);
 
   ws.on('message', (data) => {
     let msg;
@@ -66,7 +68,13 @@ wss.on('connection', (ws) => {
       }
       const session = sessions.get(sessionId);
       session.clients.add(ws);
-      session.state.set(name, { ready: false, progress: null, selections: {} });
+      const prev = session.state.get(name);
+      session.state.set(
+        name,
+        prev
+          ? { ...prev, online: true }
+          : { ready: false, progress: null, selections: {}, online: true }
+      );
       console.log(`[join] session=${sessionId} name=${name} clients=${session.clients.size}`);
       // als resultaten al gestart zijn, duw meteen een results event en state
       if (session.resultsTriggered) {
@@ -81,7 +89,7 @@ wss.on('connection', (ws) => {
       if (session && session.state.has(name)) {
         const prev = session.state.get(name);
         const nextReady = !!msg.ready;
-        session.state.set(name, { ...prev, ready: nextReady });
+        session.state.set(name, { ...prev, ready: nextReady, online: true });
         if (prev.ready !== nextReady) {
           console.log(`[ready] session=${sessionId} name=${name} ready=${nextReady}`);
         }
@@ -109,7 +117,7 @@ wss.on('connection', (ws) => {
           prev.progress.total === nextProgress.total;
         const logNeeded = !sameProgress || !sameSelections(prev.selections, nextSelections);
 
-        session.state.set(name, { ...prev, progress: nextProgress, selections: nextSelections });
+        session.state.set(name, { ...prev, progress: nextProgress, selections: nextSelections, online: true });
         if (logNeeded) {
           const currentQ = (nextProgress && nextProgress.qIndex) ?? '-';
           const summary = formatPoints(nextSelections);
@@ -145,11 +153,15 @@ wss.on('connection', (ws) => {
     }
   });
 
-  ws.on('close', () => {
+  ws.on('close', (code, reason) => {
     const session = sessions.get(sessionId);
+    console.log(`[conn-close] peer=${peer} code=${code} reason=${reason?.toString() || ''} session=${sessionId} name=${name || ''}`);
     if (session) {
       session.clients.delete(ws);
-      if (name) session.state.delete(name);
+      if (name && session.state.has(name)) {
+        const prev = session.state.get(name);
+        session.state.set(name, { ...prev, online: false, ready: false });
+      }
       broadcast(sessionId);
     }
   });

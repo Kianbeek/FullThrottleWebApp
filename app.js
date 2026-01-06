@@ -76,7 +76,8 @@
 
   function updateAllReady() {
     if (syncActive && syncParticipants.length > 0) {
-      allReady = syncParticipants.every((p) => p.ready);
+      const online = syncParticipants.filter((p) => p.online !== false);
+      allReady = online.every((p) => p.ready);
     } else {
       allReady = true;
     }
